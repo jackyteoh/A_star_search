@@ -1,7 +1,17 @@
 # Jacky Teoh
 # GRAPH-SEARCH Algorithm with A* Search strategy for the 8-puzzle problem
 
-# Reading in the file, allowing the user to input which file to search for
+# Find manhattan sums of up/down/left/right of current and do it again
+# Tie?? Do all ties? Pick least manhattan_sum of those ties?
+# while manhattan_sum != 0: depth+=1, up down left right?
+# recursive? While loop? figure it out
+# add onto sequence of actions
+
+# Search function, performs the actions
+#def search(x):
+#move function should return matrix and direction
+
+#Reading in the file, allowing the user to select which file to search for
 print("What is the complete filename you wish to use this A* search for?")
 filename = input()
 initial = open(filename, "r")
@@ -9,40 +19,14 @@ got_lines = initial.readlines()
 
 # Creating empty matrices for both the initial and goal states of the puzzle
 # Initializes needed variables: depth_level, number_of_nodes_generated, sequence_of_actions
-# manhattan_sum, explored_matrices
+# manhattan_sum, unique_matrices
 puzzle = []
 goal = []
 depth_level = 0
 number_of_nodes_generated = 1
 sequence_of_actions = []
 manhattan_sum = None
-explored_matrices = []
-
-# Making a Priority Queue with popping least manhattan sums to represent the frontier
-class PriorityQueue(object): 
-    def __init__(self): 
-        self.queue = [] 
-
-    # for checking if the queue is empty 
-    def isEmpty(self): 
-        return len(self.queue) == [] 
-  
-    # for inserting an element in the queue 
-    def insert(self, data): 
-        self.queue.append(data) 
-  
-    # for popping an element based on Priority 
-    def delete(self): 
-        try: 
-            min = 0
-            for i in range(len(self.queue)): 
-                if self.queue[i][1] < self.queue[min][1]: 
-                    min = i 
-            item = self.queue[min] 
-            del self.queue[min] 
-            return item 
-        except IndexError:
-            exit()
+unique_matrices = []
 
 # Puts initial into a matrix: puzzle
 for i in range(3):
@@ -61,9 +45,6 @@ for j in range (4,7):
 		if y.isdigit():
 			matrix_line.append(int(y))
 	goal.append(matrix_line)
-
-# Initializing a priority queue, start it with the initial puzzle
-search_frontier = PriorityQueue()
 
 # Passes in a value, iterates through the goal matrix and finds the position of that value
 # returns x and y as a list of that value in the goal matrix
@@ -91,7 +72,9 @@ def find_manhattan_sum(array):
 		for y in range(0, 3):
 			goal_checker = check_goal(array[x][y])
 			manhattan_distance = find_manhattan_distance(x, y, goal_checker)
+			#print(array[x][y], ", Manhattan Distance = ", manhattan_distance)
 			manhattan_sum += manhattan_distance
+	#print("Manhattan sum:", manhattan_sum)
 	return manhattan_sum
 
 # Passed in a matrix (intiial)
@@ -131,6 +114,8 @@ def moveUp(matrix):
 		position_of_move_y = position_of_zero[1]
 		new_matrix = swap_positions(position_of_move_x, position_of_move_y, position_of_zero_x, position_of_zero_y, new_matrix)
 		number_of_nodes_generated+=1
+		#print(number_of_nodes_generated)
+		#print(new_matrix)
 		return new_matrix, direction
 
 # Passed in a matrix, direction variable corresponds to the type of move
@@ -149,6 +134,8 @@ def moveDown(matrix):
 		position_of_move_y = position_of_zero[1]
 		new_matrix = swap_positions(position_of_move_x, position_of_move_y, position_of_zero_x, position_of_zero_y, new_matrix)
 		number_of_nodes_generated+=1
+		#print(number_of_nodes_generated)
+		#print(new_matrix)
 		return new_matrix, direction
 
 # Passed in a matrix, direction variable corresponds to the type of move
@@ -167,6 +154,8 @@ def moveLeft(matrix):
 		position_of_move_y = position_of_zero[1] + 1
 		new_matrix = swap_positions(position_of_move_x, position_of_move_y, position_of_zero_x, position_of_zero_y, new_matrix)
 		number_of_nodes_generated+=1
+		#print(number_of_nodes_generated)
+		#print(new_matrix)
 		return new_matrix, direction
 
 # Passed in a matrix, direction variable corresponds to the type of move
@@ -185,23 +174,39 @@ def moveRight(matrix):
 		position_of_move_y = position_of_zero[1] - 1
 		new_matrix = swap_positions(position_of_move_x, position_of_move_y, position_of_zero_x, position_of_zero_y, new_matrix)
 		number_of_nodes_generated+=1
+		#print(number_of_nodes_generated)
+		#print(new_matrix)
 		return new_matrix, direction
 
 # Main search function, passed in a matrix
 # gets globals of all needed variables, checks the manhattan_sum to see if it made it to the goal node
 # (manhattan_sum == 0), if not, while it != 0, increases depth_level, finds manhattan sum of each move if it exists
+# appends these to a list, min, and then finds the min of these sums (Excluding None if it the possible move doesn't exist)
+# Compares the min manhattan sum to the manhattan sums of each move, if they're the same,
+# check if that move already exists in the unique_matrices list, if it does, don't branch off that move since we already did it
+# if doesn't exist, add to the list, append the direction to sequence_of_actions, 
+# recursively call search(move[0]) (the moved matrix with least manhattan sum)
+# does this until manhattan_sum == 0, writes to file the initial and goal matrices, the depth_level, number_of_nodes_generated, sequence_of_actions
+# closes all files
 def search(matrix):
-	global puzzle
-	global goal
 	global depth_level
 	global number_of_nodes_generated
 	global sequence_of_actions
 	global manhattan_sum
-	global explored_matrices
-	global search_frontier
+	global unique_matrices
 
 	manhattan_sum = find_manhattan_sum(matrix)
-	f_n_value = manhattan_sum + depth_level
+
+	if manhattan_sum == 0:
+		print("Wow you got it!")
+		complete = open("goal.txt", "w")
+		for i in got_lines:
+			complete.write(i)
+		complete.write("\n\n" + str(depth_level))
+		complete.write("\n" + str(number_of_nodes_generated))
+		complete.write("\n" + str(sequence_of_actions))
+		return complete
+		complete.close()
 
 	while manhattan_sum != 0:
 		depth_level += 1
@@ -210,65 +215,100 @@ def search(matrix):
 		manhattan_sum_left = None
 		manhattan_sum_right = None
 
-		# Finds and returns all moves (if possible) of the matrix passed in
-		# Finds the manhattan sum of new matrix, and updates the f_n values for corresponding moves
-		# By adding manhattan sum + depth level
-		# Adds the new matrix, along with f_n value and the direction to the search frontier
 		up = moveUp(matrix)
-		if up is not None:
+		if up:
 			manhattan_sum_up = find_manhattan_sum(up[0])
-			f_n_up_value = manhattan_sum_up + depth_level
-			search_frontier.insert([up[0], f_n_up_value, up[1]])
-
 		down = moveDown(matrix)
-		if down is not None:
+		if down:
 			manhattan_sum_down = find_manhattan_sum(down[0])
-			f_n_down_value = manhattan_sum_down + depth_level
-			search_frontier.insert([down[0], f_n_down_value, down[1]])
-
 		left = moveLeft(matrix)
-		if left is not None:
+		if left:
 			manhattan_sum_left = find_manhattan_sum(left[0])
-			f_n_left_value = manhattan_sum_left + depth_level
-			search_frontier.insert([left[0], f_n_left_value, left[1]])
-
 		right = moveRight(matrix)
-		if right is not None:
+		if right:
 			manhattan_sum_right = find_manhattan_sum(right[0])
-			f_n_right_value = manhattan_sum_right + depth_level
-			search_frontier.insert([right[0], manhattan_sum_right + depth_level, right[1]])
 
-		# Pops off the search frontier
-		# If not explored already, add to explored and add to sequence of actions the action took to get there
-		# Call search again
-		# If in explored, pop pop and search again
-		least_f_n = search_frontier.delete()
-		if least_f_n[0] not in explored_matrices:
-			explored_matrices.append(least_f_n[0])
-			sequence_of_actions.append(least_f_n[2])
-			return search((least_f_n[0]))
-		elif least_f_n[0] in explored_matrices:
-			while least_f_n[0] in explored_matrices:
-				least_f_n = search_frontier.delete()
-			return search((least_f_n[0]))
+		# MAKE A MIN HEAP (PRIORITY QUEUE WHERE MIN GETS POPPED OFF FIRST) THE FRONTIER
+		# ADD UNEXPLORED CHILDREN TO FRONTIER [Matrix, f(n) = g(n) + h(n) (depth_level + manhattan_sum), Direction]
+		# IF SAME MATRIX OCCURS, COMPARE F(N), UPDATE TO SMALLER F(N)
+		# https://www.geeksforgeeks.org/priority-queue-in-python/
+		mins = [] 
+		mins.append(manhattan_sum_up)
+		mins.append(manhattan_sum_down)
+		mins.append(manhattan_sum_right)
+		mins.append(manhattan_sum_left)
 
-	# When manhattan sum is 0, write to the file with depth_levels, number of nodes generated, and sequences of actions
-	if manhattan_sum == 0:
+		minimum_manhattan_sum = min(x for x in mins if x is not None)
+		#if up is not None:
+		#	up_tuple = (tuple(i) for i in up[0])
+		#	#print(tuple(up_tuple))
+		#if down is not None:
+		#	down_tuple = (tuple(i) for i in down[0])
+		#	#print(tuple(down_tuple))
+		#if right is not None:
+		#	right_tuple = (tuple(i) for i in right[0])
+		#	#print(tuple(right_tuple))
+		#if left is not None:
+		#	left_tuple = (tuple(i) for i in left[0])
+		#	#print(tuple(left_tuple))
 
-		print("Wow you got it!")
-		complete = open("output.txt", "w")
-		for i in got_lines:
-			complete.write(i)
-		complete.write("\n\n" + "Depth level is: " + str(depth_level))
-		complete.write("\n" + "Number of nodes generated is: " + str(number_of_nodes_generated))
-		complete.write("\n" + "Sequence of Actions is: " + str(sequence_of_actions))
+		#if manhattan_sum_up is not None:
+		if minimum_manhattan_sum == manhattan_sum_up:
+				#up_tuple = (tuple(i) for i in up[0])
+				#if up_tuple not in unique_matrices:
+				#	unique_matrices.add(tuple(up_tuple))
+			if up[0] not in unique_matrices:
+				unique_matrices.append(up[0])
+				sequence_of_actions.append(up[1])
+				print(sequence_of_actions)
+				return search(up[0])
+			elif up[0] in unique_matrices:
+				pass
+			pass
+		#elif manhattan_sum_down is not None:
+		elif minimum_manhattan_sum == manhattan_sum_down:
+				#down_tuple = (tuple(i) for i in down[0])
+				#if down_tuple not in unique_matrices:
+				#	unique_matrices.add(tuple(down_tuple))
+			if down[0] not in unique_matrices:
+				unique_matrices.append(down[0])
+				sequence_of_actions.append(down[1])
+				print(sequence_of_actions)
+				return search(down[0])
+			elif down[0] in unique_matrices:
+				pass
+			pass
+		#elif manhattan_sum_right is not None:
+		elif minimum_manhattan_sum == manhattan_sum_right:
+				#right_tuple = (tuple(i) for i in right[0])
+				#if right_tuple not in unique_matrices:
+				#	unique_matrices.add(tuple(right_tuple))
+			if right[0] not in unique_matrices:
+				unique_matrices.append(right[0])
+				sequence_of_actions.append(right[1])
+				print(sequence_of_actions)
+				return search(right[0])
+			elif right[0] in unique_matrices:
+				pass
+			pass
+		#elif manhattan_sum_left is not None:
+		elif minimum_manhattan_sum == manhattan_sum_left:
+			#left_tuple = (tuple(i) for i in left[0])
+			#if left_tuple not in unique_matrices:
+			#	unique_matrices.add(tuple(left_tuple))
+			if left[0] not in unique_matrices:
+				unique_matrices.append(left[0])
+				sequence_of_actions.append(left[1])
+				print(sequence_of_actions)
+				return search(left[0])
+			elif left[0] in unique_matrices:
+				pass
+			pass
 
-		print("Depth level is: " + str(depth_level))
-		print("Number of nodes generated is: " + str(number_of_nodes_generated))
-		print("Sequence of Actions is: " + str(sequence_of_actions))
 
-		complete.close()
-		return
+	print(depth_level)
+	print(number_of_nodes_generated)
+	print(sequence_of_actions)
 
 search(puzzle)
 
